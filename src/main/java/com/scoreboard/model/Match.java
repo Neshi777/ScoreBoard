@@ -1,4 +1,10 @@
 package com.scoreboard.model;
 
-public class Match {
+import java.time.Instant;
+
+public record Match(String homeTeam, String awayTeam, int homeScore, int awayScore, Instant startTime) {
+
+    public Match {
+        startTime = Instant.now();
+    }
 }

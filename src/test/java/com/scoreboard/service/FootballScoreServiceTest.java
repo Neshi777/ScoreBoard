@@ -1,24 +1,25 @@
 package com.scoreboard.service;
 
+import com.scoreboard.model.Match;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.List;
 import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public class FootballScoreServiceTest {
 
+    private FootballScoreService service;
 
-    @ParameterizedTest(name = "Starting match between {0} and {1}")
-    @CsvSource({
-            "Team A, Team B",
-            "Team C, Team D",
-            "Team E, Team F"
-    })
-    public void testStartMatch(String homeTeam, String awayTeam) {
-
+    @BeforeEach
+    public void setup() {
+        service = new FootballScoreService();
     }
 
     @ParameterizedTest(name = "Updating score for match between {0} and {1}")
@@ -72,7 +73,6 @@ public class FootballScoreServiceTest {
     }
 
 
-
     // Exceptions tests
 
     @Nested
@@ -102,6 +102,25 @@ public class FootballScoreServiceTest {
     @Nested
     class StartMatchTests {
 
+        @ParameterizedTest(name = "Starting match between {0} and {1}")
+        @CsvSource({
+                "Team A, Team B",
+                "Team C, Team D",
+                "Team E, Team F"
+        })
+        public void testStartMatch(String homeTeam, String awayTeam) {
+            service.startMatch(homeTeam, awayTeam);
+            List<Match> matches = service.getSummary();
+            assertEquals(1, matches.size());
+            Match match = matches.get(0);
+            assertAll("Match details",
+                    () -> assertEquals(homeTeam, match.homeTeam()),
+                    () -> assertEquals(awayTeam, match.awayTeam()),
+                    () -> assertEquals(0, match.homeScore()),
+                    () -> assertEquals(0, match.awayScore())
+            );
+        }
+
         @ParameterizedTest(name = "Start match with null or empty teams: home={0}, away={1}")
         @CsvSource({
                 "Home Team, ",
@@ -109,6 +128,7 @@ public class FootballScoreServiceTest {
                 ", "
         })
         void startMatch_nullOrEmptyTeams_throwsNullPointerException(String homeTeam, String awayTeam) {
+            assertThrows(NullPointerException.class, () -> service.startMatch(homeTeam, awayTeam));
         }
 
 
@@ -120,10 +140,13 @@ public class FootballScoreServiceTest {
         })
         void startMatch_duplicateMatch_throwsIllegalArgumentException(String homeTeam, String awayTeam) {
             // Start the match once
+            service.startMatch(homeTeam, awayTeam);
 
             // Attempt to start the match again with the same teams
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> service.startMatch(homeTeam, awayTeam));
 
             // Assert the exception message
+            assertEquals("Match already exists: " + homeTeam + " vs " + awayTeam, exception.getMessage());
         }
     }
 
