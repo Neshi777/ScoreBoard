@@ -64,6 +64,11 @@ public class FootballScoreService {
                 .collect(Collectors.toList());
     }
 
+    public void clearScoreboard() {
+        matches.clear();
+        logger.info("Scoreboard cleared");
+    }
+
     private Optional<Match> findMatch(String homeTeam, String awayTeam) {
         return matches.stream()
                 .filter(match -> match.homeTeam().equals(homeTeam) && match.awayTeam().equals(awayTeam))
