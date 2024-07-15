@@ -45,6 +45,17 @@ public class FootballScoreService {
         }
     }
 
+    public void finishMatch(String homeTeam, String awayTeam) {
+        Optional<Match> optionalMatch = findMatch(homeTeam, awayTeam);
+        if (optionalMatch.isPresent()) {
+            matches.remove(optionalMatch.get());
+            logger.info("Match finished: {} vs {}", homeTeam, awayTeam);
+        } else {
+            logger.error("Match not found: {} vs {}", homeTeam, awayTeam);
+            throw new IllegalArgumentException("Match not found: " + homeTeam + " vs " + awayTeam);
+        }
+    }
+
     public List<Match> getSummary() {
         return matches.stream()
                 .sorted(Comparator.comparingInt((Match m) -> m.homeScore() + m.awayScore())

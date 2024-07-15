@@ -54,7 +54,6 @@ public class FootballScoreServiceTest {
             assertThrows(NullPointerException.class, () -> service.startMatch(homeTeam, awayTeam));
         }
 
-
         @ParameterizedTest(name = "Start match with teams: home={0}, away={1}")
         @CsvSource({
                 "Team A, Team B",
@@ -75,7 +74,6 @@ public class FootballScoreServiceTest {
 
     @Nested
     class ScoreSummaryTests {
-
 
         @ParameterizedTest(name = "Getting summary for matches")
         @MethodSource("provideSummaryParameters")
@@ -100,7 +98,6 @@ public class FootballScoreServiceTest {
             assertMatchDetails(matches.get(0), homeTeam2, awayTeam2, homeScore2, awayScore2);
             assertMatchDetails(matches.get(1), homeTeam1, awayTeam1, homeScore1, awayScore1);
         }
-
 
         private static Stream<Arguments> provideSummaryParameters() {
             return Stream.of(
@@ -174,7 +171,10 @@ public class FootballScoreServiceTest {
         @ParameterizedTest(name = "Finishing match between {0} and {1}")
         @MethodSource("provideFinishMatchParameters")
         public void testFinishMatch(String homeTeam, String awayTeam) {
-
+            service.startMatch(homeTeam, awayTeam);
+            service.finishMatch(homeTeam, awayTeam);
+            List<Match> matches = service.getSummary();
+            assertTrue(matches.isEmpty());
         }
 
         private static Stream<Arguments> provideFinishMatchParameters() {
@@ -194,7 +194,9 @@ public class FootballScoreServiceTest {
                 ", "
         })
         void finishMatch_matchNotFound_throwsIllegalArgumentException(String homeTeam, String awayTeam) {
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> service.finishMatch(homeTeam, awayTeam));
 
+            assertEquals("Match not found: " + homeTeam + " vs " + awayTeam, exception.getMessage());
         }
     }
 }
