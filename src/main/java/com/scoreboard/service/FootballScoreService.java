@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class FootballScoreService {
@@ -32,12 +33,30 @@ public class FootballScoreService {
         }
     }
 
+    public void updateScore(String homeTeam, String awayTeam, int homeScore, int awayScore) {
+        Optional<Match> optionalMatch = findMatch(homeTeam, awayTeam);
+        if (optionalMatch.isPresent()) {
+            matches.remove(optionalMatch.get());
+            matches.add(new Match(homeTeam, awayTeam, homeScore, awayScore, Instant.now()));
+            logger.info("Score updated: {} {} - {} {}", homeTeam, homeScore, awayTeam, awayScore);
+        } else {
+            logger.error("Match not found: {} vs {}", homeTeam, awayTeam);
+            throw new IllegalArgumentException("Match not found: " + homeTeam + " vs " + awayTeam);
+        }
+    }
+
     public List<Match> getSummary() {
         return matches.stream()
                 .sorted(Comparator.comparingInt((Match m) -> m.homeScore() + m.awayScore())
                         .reversed()
                         .thenComparing(Comparator.comparing(Match::startTime).reversed()))
                 .collect(Collectors.toList());
+    }
+
+    private Optional<Match> findMatch(String homeTeam, String awayTeam) {
+        return matches.stream()
+                .filter(match -> match.homeTeam().equals(homeTeam) && match.awayTeam().equals(awayTeam))
+                .findFirst();
     }
 
     private void validateTeams(String homeTeam, String awayTeam) {

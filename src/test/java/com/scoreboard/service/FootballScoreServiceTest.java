@@ -22,83 +22,6 @@ public class FootballScoreServiceTest {
         service = new FootballScoreService();
     }
 
-    @ParameterizedTest(name = "Updating score for match between {0} and {1}")
-    @CsvSource({
-            "Team A, Team B, 1, 2",
-            "Team C, Team D, 3, 4",
-            "Team E, Team F, 5, 6"
-    })
-    public void testUpdateScore(String homeTeam, String awayTeam, int homeScore, int awayScore) {
-
-    }
-
-    @ParameterizedTest(name = "Finishing match between {0} and {1}")
-    @MethodSource("provideFinishMatchParameters")
-    public void testFinishMatch(String homeTeam, String awayTeam) {
-
-    }
-
-    private static Stream<Arguments> provideFinishMatchParameters() {
-        return Stream.of(
-                Arguments.of("Team A", "Team B"),
-                Arguments.of("Team C", "Team D"),
-                Arguments.of("Team E", "Team F")
-        );
-    }
-
-    @ParameterizedTest(name = "Getting summary for matches")
-    @MethodSource("provideSummaryParameters")
-    public void testGetSummary(String homeTeam1, String awayTeam1, int homeScore1, int awayScore1,
-                               String homeTeam2, String awayTeam2, int homeScore2, int awayScore2) {
-        // Start match 1
-
-        // Start match 2
-
-        // Update score for match 1
-
-        // Update score for match 2
-
-        // Get summary
-
-        // Validate summary
-
-        // Check ordering by total score descending, then by start time descending
-    }
-
-    private static Stream<Arguments> provideSummaryParameters() {
-        return Stream.of(
-                Arguments.of("Team A", "Team B", 1, 2, "Team C", "Team D", 3, 4),
-                Arguments.of("Team E", "Team F", 2, 3, "Team G", "Team H", 4, 5)
-        );
-    }
-
-
-    // Exceptions tests
-
-    @Nested
-    class UpdateScoreTests {
-
-        @ParameterizedTest(name = "Update score with negative values: {0} vs {1}, homeScore={2}, awayScore={3}")
-        @CsvSource({
-                "Home Team, Away Team, -1, 0",
-                "Team A, Team B, 1, -1",
-                "Team C, Team D, -2, -3"
-        })
-        void updateScore_negativeScores_throwsIllegalArgumentException(String homeTeam, String awayTeam, int homeScore, int awayScore) {
-
-        }
-
-        @ParameterizedTest(name = "Updating score for nonexistent match: home={0}, away={1}")
-        @CsvSource({
-                "Nonexistent Team, Away Team",
-                "Team A, Team X",
-                "Team B, Team Y"
-        })
-        void updateScore_matchNotFound_throwsIllegalArgumentException(String homeTeam, String awayTeam) {
-
-        }
-    }
-
     @Nested
     class StartMatchTests {
 
@@ -151,7 +74,116 @@ public class FootballScoreServiceTest {
     }
 
     @Nested
+    class ScoreSummaryTests {
+
+
+        @ParameterizedTest(name = "Getting summary for matches")
+        @MethodSource("provideSummaryParameters")
+        public void testGetSummary(String homeTeam1, String awayTeam1, int homeScore1, int awayScore1,
+                                   String homeTeam2, String awayTeam2, int homeScore2, int awayScore2) {
+            // Start match 1
+            service.startMatch(homeTeam1, awayTeam1);
+            // Start match 2
+            service.startMatch(homeTeam2, awayTeam2);
+            // Update score for match 1
+            service.updateScore(homeTeam1, awayTeam1, homeScore1, awayScore1);
+            // Update score for match 2
+            service.updateScore(homeTeam2, awayTeam2, homeScore2, awayScore2);
+
+            // Get summary
+            List<Match> matches = service.getSummary();
+
+            // Validate summary
+            assertEquals(2, matches.size());
+
+            // Check ordering by total score descending, then by start time descending
+            assertMatchDetails(matches.get(0), homeTeam2, awayTeam2, homeScore2, awayScore2);
+            assertMatchDetails(matches.get(1), homeTeam1, awayTeam1, homeScore1, awayScore1);
+        }
+
+
+        private static Stream<Arguments> provideSummaryParameters() {
+            return Stream.of(
+                    Arguments.of("Team A", "Team B", 1, 2, "Team C", "Team D", 3, 4),
+                    Arguments.of("Team E", "Team F", 2, 3, "Team G", "Team H", 4, 5)
+            );
+        }
+
+        private void assertMatchDetails(Match match, String homeTeam, String awayTeam, int homeScore, int awayScore) {
+            assertEquals(homeTeam, match.homeTeam());
+            assertEquals(awayTeam, match.awayTeam());
+            assertEquals(homeScore, match.homeScore());
+            assertEquals(awayScore, match.awayScore());
+        }
+    }
+
+    @Nested
+    class UpdateScoreTests {
+
+        @ParameterizedTest(name = "Updating score for match between {0} and {1}")
+        @CsvSource({
+                "Team A, Team B, 1, 2",
+                "Team C, Team D, 3, 4",
+                "Team E, Team F, 5, 6"
+        })
+        public void testUpdateScore(String homeTeam, String awayTeam, int homeScore, int awayScore) {
+            service.startMatch(homeTeam, awayTeam);
+            service.updateScore(homeTeam, awayTeam, homeScore, awayScore);
+            List<Match> matches = service.getSummary();
+            assertEquals(1, matches.size());
+            Match match = matches.get(0);
+            assertAll("Match details",
+                    () -> assertEquals(homeTeam, match.homeTeam()),
+                    () -> assertEquals(awayTeam, match.awayTeam()),
+                    () -> assertEquals(homeScore, match.homeScore()),
+                    () -> assertEquals(awayScore, match.awayScore())
+            );
+        }
+
+        @ParameterizedTest(name = "Update score with negative values: {0} vs {1}, homeScore={2}, awayScore={3}")
+        @CsvSource({
+                "Home Team, Away Team, -1, 0",
+                "Team A, Team B, 1, -1",
+                "Team C, Team D, -2, -3"
+        })
+        void updateScore_negativeScores_throwsIllegalArgumentException(String homeTeam, String awayTeam, int homeScore, int awayScore) {
+            service.startMatch(homeTeam, awayTeam);
+
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> service.updateScore(homeTeam, awayTeam, homeScore, awayScore));
+
+            assertEquals("Scores cannot be negative", exception.getMessage());
+        }
+
+        @ParameterizedTest(name = "Updating score for nonexistent match: home={0}, away={1}")
+        @CsvSource({
+                "Nonexistent Team, Away Team",
+                "Team A, Team X",
+                "Team B, Team Y"
+        })
+        void updateScore_matchNotFound_throwsIllegalArgumentException(String homeTeam, String awayTeam) {
+            IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                    () -> service.updateScore(homeTeam, awayTeam, 1, 0));
+
+            assertEquals("Match not found: " + homeTeam + " vs " + awayTeam, exception.getMessage());
+        }
+    }
+
+    @Nested
     class FinishMatchTests {
+
+        @ParameterizedTest(name = "Finishing match between {0} and {1}")
+        @MethodSource("provideFinishMatchParameters")
+        public void testFinishMatch(String homeTeam, String awayTeam) {
+
+        }
+
+        private static Stream<Arguments> provideFinishMatchParameters() {
+            return Stream.of(
+                    Arguments.of("Team A", "Team B"),
+                    Arguments.of("Team C", "Team D"),
+                    Arguments.of("Team E", "Team F")
+            );
+        }
 
         @ParameterizedTest(name = "Finish match with nonexistent teams: home={0}, away={1}")
         @CsvSource({
